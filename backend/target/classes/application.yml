@@ -1,0 +1,131 @@
+spring:
+  application:
+    name: cloud-optimizer
+
+  # Database configuration
+  datasource:
+    url: ${AZURE_SQL_URL:jdbc:h2:mem:testdb}
+    username: ${AZURE_SQL_USERNAME:sa}
+    password: ${AZURE_SQL_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
+        format_sql: false
+    show-sql: false
+
+  # Flyway for database migrations
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # Cache configuration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=5m
+
+  # Jackson configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Server configuration
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# Azure integration
+azure:
+  subscription-id: ${AZURE_SUBSCRIPTION_ID:}
+  keyvault:
+    uri: ${AZURE_KEYVAULT_URI:}
+  ml:
+    endpoint:
+      forecast: ${AZURE_ML_FORECAST_ENDPOINT:}
+      clustering: ${AZURE_ML_CLUSTERING_ENDPOINT:}
+      key: ${AZURE_ML_ENDPOINT_KEY:}
+
+# JWT configuration
+jwt:
+  secret: ${JWT_SECRET:development-secret-key-minimum-32-characters}
+  issuer: ${JWT_ISSUER:cloud-optimizer}
+  expiration-hours: 24
+
+# Rate limiting
+rate-limit:
+  requests-per-minute: 100
+  unauthenticated-requests-per-minute: 10
+
+# Optimization thresholds
+optimization:
+  thresholds:
+    idle: 0.05
+    underutilized: 0.20
+    overutilized: 0.80
+    idle-days: 7
+  minimum-savings-threshold: 10.0
+  minimum-confidence-threshold: 0.6
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.microsoft.cloudoptimizer: DEBUG
+    org.springframework.security: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Swagger/OpenAPI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  datasource:
+    url: ${AZURE_SQL_URL}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+
+logging:
+  level:
+    root: WARN
+    com.microsoft.cloudoptimizer: INFO

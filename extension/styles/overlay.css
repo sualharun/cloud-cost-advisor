@@ -1,0 +1,416 @@
+/**
+ * Cloud Cost Optimizer - Overlay Styles
+ *
+ * Design principles:
+ * - Non-intrusive: positioned in corner, doesn't block page content
+ * - Accessible: high contrast, clear typography
+ * - Consistent: works across Azure, AWS, and GCP consoles
+ * - Professional: Microsoft design language influences
+ */
+
+/* Reset and base */
+.cco-overlay * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Main overlay container */
+.cco-overlay {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 320px;
+  max-height: calc(100vh - 120px);
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  z-index: 999999;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cco-overlay.visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Header */
+.cco-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+  color: #ffffff;
+  cursor: move;
+  user-select: none;
+}
+
+.cco-overlay-title {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.cco-overlay-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.cco-overlay-close:hover {
+  opacity: 1;
+}
+
+/* Content area */
+.cco-overlay-content {
+  padding: 16px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* Loading state */
+.cco-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: #605e5c;
+}
+
+.cco-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #edebe9;
+  border-top-color: #0078d4;
+  border-radius: 50%;
+  animation: cco-spin 0.8s linear infinite;
+}
+
+@keyframes cco-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Result display */
+.cco-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Metric display */
+.cco-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cco-metric-label {
+  font-size: 12px;
+  color: #605e5c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cco-metric-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #323130;
+}
+
+.cco-metric-confidence {
+  font-size: 12px;
+  color: #8a8886;
+}
+
+/* Status indicator */
+.cco-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.cco-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cco-status-success {
+  background: #dff6dd;
+  color: #107c10;
+}
+
+.cco-status-success .cco-status-indicator {
+  background: #107c10;
+}
+
+.cco-status-warning {
+  background: #fff4ce;
+  color: #835c00;
+}
+
+.cco-status-warning .cco-status-indicator {
+  background: #c19c00;
+}
+
+.cco-status-danger {
+  background: #fed9cc;
+  color: #a4262c;
+}
+
+.cco-status-danger .cco-status-indicator {
+  background: #d13438;
+}
+
+.cco-status-critical {
+  background: #fde7e9;
+  color: #a80000;
+}
+
+.cco-status-critical .cco-status-indicator {
+  background: #a80000;
+}
+
+.cco-status-neutral {
+  background: #f3f2f1;
+  color: #605e5c;
+}
+
+.cco-status-neutral .cco-status-indicator {
+  background: #8a8886;
+}
+
+.cco-status-label {
+  font-weight: 600;
+}
+
+.cco-status-detail {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Recommendations section */
+.cco-recommendations h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #605e5c;
+  margin-bottom: 12px;
+}
+
+.cco-recommendation {
+  padding: 12px;
+  background: #faf9f8;
+  border-radius: 4px;
+  border-left: 3px solid #0078d4;
+  margin-bottom: 8px;
+}
+
+.cco-recommendation.high {
+  border-left-color: #d13438;
+}
+
+.cco-recommendation.medium {
+  border-left-color: #c19c00;
+}
+
+.cco-recommendation.low {
+  border-left-color: #107c10;
+}
+
+.cco-rec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.cco-rec-action {
+  font-weight: 600;
+  color: #323130;
+}
+
+.cco-rec-savings {
+  font-size: 12px;
+  font-weight: 600;
+  color: #107c10;
+}
+
+.cco-rec-summary {
+  font-size: 13px;
+  color: #605e5c;
+  margin-bottom: 8px;
+}
+
+.cco-rec-config {
+  font-size: 12px;
+  color: #0078d4;
+  margin-bottom: 8px;
+}
+
+.cco-rec-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* No recommendations */
+.cco-no-recommendations {
+  text-align: center;
+  color: #8a8886;
+  padding: 16px;
+  background: #faf9f8;
+  border-radius: 4px;
+}
+
+/* Buttons */
+.cco-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.cco-btn-primary {
+  background: #0078d4;
+  color: #ffffff;
+  border-color: #0078d4;
+}
+
+.cco-btn-primary:hover {
+  background: #106ebe;
+  border-color: #106ebe;
+}
+
+.cco-btn-secondary {
+  background: #ffffff;
+  color: #323130;
+  border-color: #8a8886;
+}
+
+.cco-btn-secondary:hover {
+  background: #f3f2f1;
+}
+
+/* Auth state */
+.cco-auth {
+  text-align: center;
+  padding: 24px;
+}
+
+.cco-auth p {
+  margin-bottom: 16px;
+  color: #605e5c;
+}
+
+/* Error state */
+.cco-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #a4262c;
+}
+
+.cco-error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #fed9cc;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.cco-error-message {
+  color: #605e5c;
+}
+
+/* Dark mode support (for consoles that support it) */
+@media (prefers-color-scheme: dark) {
+  .cco-overlay {
+    background: #1b1a19;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .cco-metric-value,
+  .cco-rec-action {
+    color: #f3f2f1;
+  }
+
+  .cco-metric-label,
+  .cco-metric-confidence,
+  .cco-rec-summary,
+  .cco-loading,
+  .cco-auth p {
+    color: #a19f9d;
+  }
+
+  .cco-recommendation,
+  .cco-no-recommendations {
+    background: #252423;
+  }
+
+  .cco-btn-secondary {
+    background: #252423;
+    color: #f3f2f1;
+    border-color: #484644;
+  }
+
+  .cco-btn-secondary:hover {
+    background: #323130;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .cco-overlay {
+    width: calc(100vw - 40px);
+    right: 20px;
+    left: 20px;
+  }
+}
+
+/* Scrollbar styling */
+.cco-overlay-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cco-overlay-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cco-overlay-content::-webkit-scrollbar-thumb {
+  background: #c8c6c4;
+  border-radius: 3px;
+}
+
+.cco-overlay-content::-webkit-scrollbar-thumb:hover {
+  background: #a19f9d;
+}

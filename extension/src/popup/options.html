@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Cost Optimizer - Settings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #0078d4;
+            margin-bottom: 30px;
+        }
+        .setting-group {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .setting-group h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        input[type="number"],
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #006cbd;
+        }
+        .status {
+            display: none;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            background: #d1f0d1;
+            color: #0c5c0c;
+        }
+        .dev-mode {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚙️ Cloud Cost Optimizer Settings</h1>
+
+    <div class="dev-mode">
+        <strong>🧪 Development Mode</strong>
+        <p>Backend: <span id="backend-url">http://localhost:8080</span></p>
+        <p>This is the local development version. Settings will be saved locally.</p>
+    </div>
+
+    <div class="setting-group">
+        <h2>General Settings</h2>
+        
+        <label>
+            <input type="checkbox" id="enabled" checked>
+            Enable cost optimization recommendations
+        </label>
+        
+        <label>
+            <input type="checkbox" id="showOverlay" checked>
+            Show overlay on cloud console pages
+        </label>
+        
+        <label>
+            Minimum savings to show recommendations (USD):
+            <input type="number" id="minimumSavings" value="10" min="0" step="5">
+        </label>
+        
+        <label>
+            Auto-refresh interval (minutes):
+            <input type="number" id="autoRefresh" value="5" min="1" max="60">
+        </label>
+    </div>
+
+    <div class="setting-group">
+        <h2>Cloud Providers</h2>
+        
+        <label>
+            <input type="checkbox" id="enableAzure" checked>
+            Monitor Azure resources
+        </label>
+        
+        <label>
+            <input type="checkbox" id="enableAWS" checked>
+            Monitor AWS resources
+        </label>
+        
+        <label>
+            <input type="checkbox" id="enableGCP" checked>
+            Monitor GCP resources
+        </label>
+    </div>
+
+    <div class="setting-group">
+        <h2>Notifications</h2>
+        
+        <label>
+            <input type="checkbox" id="notifications" checked>
+            Enable browser notifications for high-value savings
+        </label>
+        
+        <label>
+            Notification threshold (USD):
+            <input type="number" id="notificationThreshold" value="100" min="10" step="10">
+        </label>
+    </div>
+
+    <div class="setting-group">
+        <h2>Advanced</h2>
+        
+        <label>
+            Backend API URL:
+            <input type="text" id="apiUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+            <small style="color: #888; display: block; margin-top: 5px;">
+                For local development. Change to production URL when deploying.
+            </small>
+        </label>
+        
+        <label>
+            <input type="checkbox" id="debugMode">
+            Enable debug logging (check browser console)
+        </label>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <button id="save">Save Settings</button>
+        <button id="reset" style="background: #666;">Reset to Defaults</button>
+    </div>
+
+    <div class="status" id="status">
+        ✓ Settings saved successfully!
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cloud Optimizer - Local Test Page</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .resource-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .resource-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        h1 { color: #0078d4; }
+        h2 { color: #333; margin-bottom: 10px; }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge.running { background: #d1f0d1; color: #0c5c0c; }
+        .badge.stopped { background: #ffd1d1; color: #8c0000; }
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .debug-panel {
+            background: #e7f3ff;
+            border: 1px solid #0078d4;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        ul, ol {
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Cloud Cost Optimizer - Local Test Environment</h1>
+    <p>This page simulates a cloud console for testing the extension locally.</p>
+
+    <div class="instructions">
+        <h3>📋 Quick Start Instructions</h3>
+        <ol>
+            <li><strong>Backend:</strong> Make sure it's running → <code>cd backend && mvn spring-boot:run</code></li>
+            <li><strong>Extension:</strong> Load it in Chrome → <code>chrome://extensions</code> → "Load unpacked" → Select <code>extension/</code> folder</li>
+            <li><strong>DevTools:</strong> Open browser console (F12) to see extension logs</li>
+            <li><strong>Watch:</strong> The extension should automatically detect resources below and show recommendations</li>
+        </ol>
+    </div>
+
+    <!-- Test Resource 1: Underutilized VM -->
+    <div class="resource-card" data-resource-type="compute" data-resource-id="test-vm-underutilized-01" data-provider="azure">
+        <div class="resource-header">
+            <div>
+                <h2>Virtual Machine: test-vm-underutilized-01</h2>
+                <p><code>Standard_D4s_v3</code> • 4 vCPU • 16 GB RAM • East US</p>
+            </div>
+            <span class="badge running">Running</span>
+        </div>
+        <p><strong>Resource ID:</strong> <code>/subscriptions/12345/resourceGroups/test-rg/providers/Microsoft.Compute/virtualMachines/test-vm-underutilized-01</code></p>
+        <p><strong>Monthly Cost:</strong> ~$140/month</p>
+        <p><strong>Simulated Issue:</strong> Low CPU utilization (avg 12%)</p>
+        <p style="color: #888; font-size: 14px;">💡 Extension should suggest downsizing to Standard_D2s_v3</p>
+    </div>
+
+    <!-- Test Resource 2: Idle Database -->
+    <div class="resource-card" data-resource-type="database" data-resource-id="test-db-idle-01" data-provider="azure">
+        <div class="resource-header">
+            <div>
+                <h2>SQL Database: test-db-idle-01</h2>
+                <p><code>Standard S3</code> • 100 DTU • 250 GB • West US 2</p>
+            </div>
+            <span class="badge running">Running</span>
+        </div>
+        <p><strong>Resource ID:</strong> <code>/subscriptions/12345/resourceGroups/test-rg/providers/Microsoft.Sql/servers/testserver/databases/test-db-idle-01</code></p>
+        <p><strong>Monthly Cost:</strong> ~$300/month</p>
+        <p><strong>Simulated Issue:</strong> Idle for 7+ days (no connections)</p>
+        <p style="color: #888; font-size: 14px;">💡 Extension should suggest pausing or deleting the database</p>
+    </div>
+
+    <!-- Test Resource 3: Optimized Instance -->
+    <div class="resource-card" data-resource-type="compute" data-resource-id="test-vm-optimized-01" data-provider="aws">
+        <div class="resource-header">
+            <div>
+                <h2>EC2 Instance: test-vm-optimized-01</h2>
+                <p><code>t3.large</code> • 2 vCPU • 8 GB RAM • us-east-1</p>
+            </div>
+            <span class="badge running">Running</span>
+        </div>
+        <p><strong>Instance ID:</strong> <code>i-0123456789abcdef0</code></p>
+        <p><strong>Monthly Cost:</strong> ~$75/month</p>
+        <p><strong>Status:</strong> Well-utilized (avg 65% CPU)</p>
+        <p style="color: #888; font-size: 14px;">✅ Extension should show "Optimally configured" badge</p>
+    </div>
+
+    <!-- Test Resource 4: Stopped Instance -->
+    <div class="resource-card" data-resource-type="compute" data-resource-id="test-vm-stopped-01" data-provider="gcp">
+        <div class="resource-header">
+            <div>
+                <h2>Compute Engine: test-vm-stopped-01</h2>
+                <p><code>n1-standard-4</code> • 4 vCPU • 15 GB RAM • us-central1</p>
+            </div>
+            <span class="badge stopped">Stopped</span>
+        </div>
+        <p><strong>Instance:</strong> <code>projects/my-project/zones/us-central1-a/instances/test-vm-stopped-01</code></p>
+        <p><strong>Monthly Cost:</strong> ~$5/month (storage only)</p>
+        <p><strong>Simulated Issue:</strong> Stopped for 30+ days</p>
+        <p style="color: #888; font-size: 14px;">💡 Extension should suggest deleting the instance</p>
+    </div>
+
+    <hr style="margin: 40px 0;">
+    
+    <div class="debug-panel">
+        <h3>🐛 Debugging & Testing</h3>
+        
+        <h4>Backend Health Checks:</h4>
+        <ul>
+            <li><strong>Health Status:</strong> <a href="http://localhost:8080/actuator/health" target="_blank">http://localhost:8080/actuator/health</a></li>
+            <li><strong>API Documentation:</strong> <a href="http://localhost:8080/swagger-ui.html" target="_blank">http://localhost:8080/swagger-ui.html</a></li>
+            <li><strong>Database Console:</strong> <a href="http://localhost:8080/h2-console" target="_blank">http://localhost:8080/h2-console</a>
+                <ul style="font-size: 14px; color: #666;">
+                    <li>JDBC URL: <code>jdbc:h2:mem:testdb</code></li>
+                    <li>Username: <code>sa</code></li>
+                    <li>Password: (leave empty)</li>
+                </ul>
+            </li>
+            <li><strong>Metrics:</strong> <a href="http://localhost:8080/actuator/metrics" target="_blank">http://localhost:8080/actuator/metrics</a></li>
+        </ul>
+
+        <h4>Extension Debugging:</h4>
+        <ul>
+            <li><strong>Extension Console:</strong> Open DevTools (F12) → Console tab → Filter by "Cloud Optimizer"</li>
+            <li><strong>Network Requests:</strong> DevTools → Network tab → Filter by "localhost:8080"</li>
+            <li><strong>Service Worker:</strong> <code>chrome://extensions</code> → Find extension → Click "service worker" link</li>
+            <li><strong>Reload Extension:</strong> <code>chrome://extensions</code> → Click refresh button on extension card</li>
+        </ul>
+
+        <h4>Direct API Testing:</h4>
+        <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;"><code>curl -X POST http://localhost:8080/api/extension/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "AZURE",
+    "resourceId": "test-vm-underutilized-01",
+    "resourceType": "COMPUTE",
+    "region": "eastus",
+    "detectedConfig": {"vcpu": 4, "memoryGb": 16}
+  }'</code></pre>
+    </div>
+
+    <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; margin-top: 40px;">
+        <h3>💡 What Should Happen</h3>
+        <ul>
+            <li>Extension icon in toolbar should show badge with number of optimization opportunities</li>
+            <li>Each resource card above should get an overlay/badge from the extension</li>
+            <li>Clicking the extension icon should show a summary popup</li>
+            <li>Browser console should show logs like "Detected resource: test-vm-underutilized-01"</li>
+            <li>Network tab should show API calls to localhost:8080</li>
+        </ul>
+
+        <h3>❓ Not Working?</h3>
+        <ol>
+            <li>Check backend is running: <code>curl http://localhost:8080/actuator/health</code></li>
+            <li>Verify extension is loaded in chrome://extensions</li>
+            <li>Check browser console (F12) for errors</li>
+            <li>Try reloading the extension</li>
+            <li>Make sure you're not blocking localhost in security settings</li>
+        </ol>
+    </div>
+
+    <footer style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
+        <p>Cloud Cost Optimizer - Local Development Environment</p>
+        <p style="font-size: 14px;">See <a href="../README.md">README.md</a> for complete documentation</p>
+    </footer>
+
+    <script>
+        // Log page load for debugging
+        console.log('🧪 Cloud Optimizer Test Page Loaded');
+        console.log('📦 Detected Resources:', document.querySelectorAll('.resource-card').length);
+        
+        // Helper to test backend connectivity
+        async function testBackend() {
+            try {
+                const response = await fetch('http://localhost:8080/actuator/health');
+                const data = await response.json();
+                console.log('✅ Backend Health:', data);
+                return true;
+            } catch (error) {
+                console.error('❌ Backend Connection Failed:', error);
+                console.error('Make sure backend is running: cd backend && mvn spring-boot:run');
+                return false;
+            }
+        }
+
+        // Run health check on page load
+        testBackend();
+
+        // Add visual indicator when extension is active
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'CLOUD_OPTIMIZER_ACTIVE') {
+                console.log('✅ Extension is active and communicating');
+                // Could add visual indicator here
+            }
+        });
+    </script>
+</body>
+</html>
