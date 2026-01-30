@@ -1,0 +1,27 @@
+# Java build artifacts
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Node modules
+node_modules/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
