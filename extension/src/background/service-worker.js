@@ -383,6 +383,14 @@ function getMockAnalysis(payload) {
     ]
   };
 }
+
+/**
+ * Handle PING messages for health checks
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PING') {
+    sendResponse({ success: true, timestamp: Date.now() });
+    return true;
   }
 });
 

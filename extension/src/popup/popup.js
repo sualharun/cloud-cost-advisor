@@ -2,16 +2,79 @@
  * Cloud Cost Optimizer - Popup Script
  *
  * Handles popup UI interactions and displays current resource status.
+ * Includes robust initialization with retry logic for service worker communication.
  */
 
-document.addEventListener('DOMContentLoaded', init);
+// Prevent duplicate event listener attachment
+let listenersAttached = false;
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+/**
+ * Send message to service worker with retry logic
+ */
+async function sendMessageWithRetry(message, maxRetries = 3, timeout = 2000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await Promise.race([
+        chrome.runtime.sendMessage(message),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), timeout)
+        )
+      ]);
+      return response;
+    } catch (error) {
+      console.warn(`Message attempt ${attempt}/${maxRetries} failed:`, error.message);
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      // Wait before retry with exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+    }
+  }
+}
+
+/**
+ * Check if service worker is healthy
+ */
+async function checkServiceWorker() {
+  try {
+    const response = await sendMessageWithRetry({ type: 'PING' }, 2, 1000);
+    return response?.success === true;
+  } catch {
+    return false;
+  }
+}
 
 async function init() {
   console.log('Popup initializing...');
-  
+
+  // Show loading state immediately
+  showLoadingState();
+
+  // Attach event listeners (only once)
+  attachEventListeners();
+
   try {
+    // Check service worker health first
+    const isHealthy = await checkServiceWorker();
+    if (!isHealthy) {
+      console.warn('Service worker not responding, showing fallback UI');
+      hideLoadingState();
+      showStatusSection();
+      showEmptyState('Extension loading. Please wait or refresh.');
+      return;
+    }
+
     // Check authentication status
-    const authStatus = await chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' });
+    const authStatus = await sendMessageWithRetry({ type: 'GET_AUTH_STATUS' });
+
+    hideLoadingState();
 
     if (!authStatus || !authStatus.authenticated) {
       showAuthSection();
@@ -20,16 +83,72 @@ async function init() {
       await loadCurrentTabStatus();
     }
 
-    // Set up event listeners
-    document.getElementById('sign-in-btn')?.addEventListener('click', handleSignIn);
-    document.getElementById('sign-out-btn')?.addEventListener('click', handleSignOut);
-    document.getElementById('settings-btn')?.addEventListener('click', openSettings);
   } catch (error) {
     console.error('Popup initialization error:', error);
-    // Show status section with error message for local dev
-    showStatusSection();
-    showEmptyState('Extension loaded. Navigate to a cloud resource to see insights.');
+    hideLoadingState();
+    showErrorState('Unable to connect to extension. Click to retry.');
   }
+}
+
+/**
+ * Attach event listeners (prevents duplicates)
+ */
+function attachEventListeners() {
+  if (listenersAttached) return;
+  listenersAttached = true;
+
+  document.getElementById('sign-in-btn')?.addEventListener('click', handleSignIn);
+  document.getElementById('sign-out-btn')?.addEventListener('click', handleSignOut);
+  document.getElementById('settings-btn')?.addEventListener('click', openSettings);
+  document.getElementById('retry-btn')?.addEventListener('click', handleRetry);
+
+  // Listen for updates from content scripts
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'RESOURCE_UPDATED') {
+      loadCurrentTabStatus();
+    }
+    return true;
+  });
+}
+
+function showLoadingState() {
+  const loading = document.getElementById('loading-state');
+  const statusSection = document.getElementById('status-section');
+  const authSection = document.getElementById('auth-section');
+
+  if (loading) loading.classList.remove('hidden');
+  if (statusSection) statusSection.classList.add('hidden');
+  if (authSection) authSection.classList.add('hidden');
+}
+
+function hideLoadingState() {
+  const loading = document.getElementById('loading-state');
+  if (loading) loading.classList.add('hidden');
+}
+
+function showErrorState(message) {
+  const errorState = document.getElementById('error-state');
+  const errorMessage = document.getElementById('error-message');
+
+  if (errorState) {
+    errorState.classList.remove('hidden');
+  }
+  if (errorMessage) {
+    errorMessage.textContent = message;
+  }
+
+  document.getElementById('auth-section')?.classList.add('hidden');
+  document.getElementById('status-section')?.classList.add('hidden');
+}
+
+function hideErrorState() {
+  const errorState = document.getElementById('error-state');
+  if (errorState) errorState.classList.add('hidden');
+}
+
+async function handleRetry() {
+  hideErrorState();
+  await init();
 }
 
 function showAuthSection() {
@@ -43,18 +162,33 @@ function showStatusSection() {
 }
 
 async function handleSignIn() {
-  const result = await chrome.runtime.sendMessage({ type: 'AUTHENTICATE' });
-  if (result.success) {
-    showStatusSection();
-    await loadCurrentTabStatus();
-  } else {
-    alert('Sign in failed: ' + (result.error || 'Unknown error'));
+  const btn = document.getElementById('sign-in-btn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const result = await sendMessageWithRetry({ type: 'AUTHENTICATE' });
+    if (result.success) {
+      showStatusSection();
+      await loadCurrentTabStatus();
+    } else {
+      alert('Sign in failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Sign in failed: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign in with Azure AD';
   }
 }
 
 async function handleSignOut() {
-  await chrome.runtime.sendMessage({ type: 'LOGOUT' });
-  showAuthSection();
+  try {
+    await sendMessageWithRetry({ type: 'LOGOUT' });
+    showAuthSection();
+  } catch (error) {
+    console.error('Sign out failed:', error);
+  }
 }
 
 function openSettings() {
@@ -138,12 +272,24 @@ function showResourceInfo(resource) {
     document.getElementById('stat-savings').textContent = '$' + totalSavings.toFixed(2);
 
     if (resource.analysis.recommendations?.length > 0) {
-      showRecommendations(resource.analysis.recommendations);
+      showRecommendations(resource.analysis.recommendations, resource.analysis.severityLevel);
     }
   }
 }
 
-function showRecommendations(recommendations) {
+/**
+ * Map severity level to CSS class
+ */
+function getSeverityClass(severityLevel) {
+  const severityMap = {
+    'critical': 'severity-critical',
+    'warning': 'severity-warning',
+    'info': 'severity-info'
+  };
+  return severityMap[severityLevel?.toLowerCase()] || 'severity-info';
+}
+
+function showRecommendations(recommendations, severityLevel) {
   const section = document.getElementById('recommendations-section');
   const list = document.getElementById('recommendations-list');
   const count = document.getElementById('rec-count');
@@ -151,17 +297,43 @@ function showRecommendations(recommendations) {
   section.classList.remove('hidden');
   count.textContent = recommendations.length;
 
-  list.innerHTML = recommendations.map(rec => `
-    <div class="recommendation-item" data-action="${rec.action}">
+  list.innerHTML = recommendations.map((rec, index) => {
+    const severity = rec.severityLevel || severityLevel || 'info';
+    const severityClass = getSeverityClass(severity);
+
+    return `
+    <div class="recommendation-item ${severityClass}"
+         data-action="${rec.action}"
+         role="button"
+         tabindex="0"
+         aria-label="${rec.actionDisplayName}: Save $${rec.estimatedSavings.toFixed(2)} per month"
+         style="animation-delay: ${index * 0.05}s">
       <div class="rec-icon ${rec.riskLevel === 'HIGH' ? 'warning' : 'success'}">
         ${getActionIcon(rec.action)}
       </div>
       <div class="rec-content">
         <div class="rec-title">${rec.actionDisplayName}</div>
+        <div class="rec-summary">${rec.summary || ''}</div>
         <div class="rec-savings">Save $${rec.estimatedSavings.toFixed(2)}/mo</div>
       </div>
+      <div class="rec-arrow" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+
+  // Add keyboard navigation
+  list.querySelectorAll('.recommendation-item').forEach(item => {
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        item.click();
+      }
+    });
+  });
 }
 
 function getActionIcon(action) {
@@ -183,14 +355,7 @@ function showEmptyState(message) {
   document.getElementById('recommendations-section').classList.add('hidden');
 
   if (message) {
-    document.querySelector('.empty-state p').textContent = message;
+    const p = document.querySelector('.empty-state p');
+    if (p) p.textContent = message;
   }
 }
-
-// Listen for updates from content scripts
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'RESOURCE_UPDATED') {
-    loadCurrentTabStatus();
-  }
-  return true;
-});
