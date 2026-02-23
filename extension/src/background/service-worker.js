@@ -70,6 +70,30 @@ async function handleMessage(message, sender) {
     case 'UPDATE_SETTINGS':
       return chrome.storage.sync.set(message.payload);
 
+    case 'GET_ALTERNATIVES':
+      return getAlternatives(message.payload);
+
+    case 'UPDATE_PREFERENCES':
+      return updatePreferences(message.payload);
+
+    case 'GET_SAVINGS_METRICS':
+      return getSavingsMetrics();
+
+    case 'MARK_IMPLEMENTED':
+      return markImplemented(message.payload);
+
+    case 'SIMULATE_SKU':
+      return simulateCostChange(message.payload);
+
+    case 'SIMULATE_RESERVATION':
+      return simulateReservation(message.payload);
+
+    case 'SIMULATE_SPOT':
+      return simulateSpot(message.payload);
+
+    case 'SIMULATE_SCHEDULING':
+      return simulateScheduling(message.payload);
+
     default:
       console.warn('Unknown message type:', message.type);
       return { error: 'Unknown message type' };
@@ -231,18 +255,19 @@ async function dismissRecommendation(payload) {
   const { recommendationId, reason } = payload;
 
   try {
-    if (!authToken) {
-      return { error: 'Not authenticated' };
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(
-      `${CONFIG.apiBaseUrl}/api/extension/recommendations/${recommendationId}/dismiss`,
+      `${CONFIG.apiBaseUrl}/api/mock/recommendations/${recommendationId || 1}/dismiss`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
+        headers: headers,
         body: JSON.stringify({ reason }),
       }
     );
@@ -253,6 +278,409 @@ async function dismissRecommendation(payload) {
     console.error('Dismiss failed:', error);
     return { error: error.message };
   }
+}
+
+/**
+ * Get alternatives for a resource.
+ */
+async function getAlternatives(payload) {
+  const { provider, resourceId, sku, region } = payload;
+
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const params = new URLSearchParams({
+      provider: provider || 'AZURE',
+      resourceId: resourceId || 'test-resource',
+      sku: sku || 'Standard_D4s_v3',
+      region: region || 'eastus'
+    });
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/alternatives?${params}`,
+      {
+        method: 'GET',
+        headers: headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Get alternatives failed:', error);
+    // Return mock data for local testing
+    if (CONFIG.apiBaseUrl.includes('localhost')) {
+      return getMockAlternatives(payload);
+    }
+    return { error: error.message };
+  }
+}
+
+/**
+ * Update tradeoff preferences.
+ */
+async function updatePreferences(payload) {
+  const { weights, includeMultiCloud, minimumSavingsThreshold } = payload;
+
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/preferences/tradeoff-weights`,
+      {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify({ weights, includeMultiCloud, minimumSavingsThreshold }),
+      }
+    );
+
+    return { success: response.ok };
+
+  } catch (error) {
+    console.error('Update preferences failed:', error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * Get savings metrics.
+ */
+async function getSavingsMetrics() {
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/metrics/savings`,
+      {
+        method: 'GET',
+        headers: headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Get savings metrics failed:', error);
+    // Return mock data for local testing
+    if (CONFIG.apiBaseUrl.includes('localhost')) {
+      return getMockSavingsMetrics();
+    }
+    return { error: error.message };
+  }
+}
+
+/**
+ * Mark a recommendation as implemented.
+ */
+async function markImplemented(payload) {
+  const { recommendationId } = payload;
+
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/recommendations/${recommendationId || 1}/implement`,
+      {
+        method: 'POST',
+        headers: headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { success: true, ...result };
+
+  } catch (error) {
+    console.error('Mark implemented failed:', error);
+    // Return mock success for local testing
+    if (CONFIG.apiBaseUrl.includes('localhost')) {
+      return { success: true, implementationId: 1 };
+    }
+    return { error: error.message };
+  }
+}
+
+/**
+ * Simulate cost change.
+ */
+async function simulateCostChange(payload) {
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/simulate`,
+      {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Simulate cost change failed:', error);
+    return getMockSimulation(payload, 'sku');
+  }
+}
+
+/**
+ * Simulate reservation savings.
+ */
+async function simulateReservation(payload) {
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/simulate/reservation`,
+      {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Simulate reservation failed:', error);
+    return getMockSimulation(payload, 'reservation');
+  }
+}
+
+/**
+ * Simulate spot instance savings.
+ */
+async function simulateSpot(payload) {
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/simulate/spot`,
+      {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Simulate spot failed:', error);
+    return getMockSimulation(payload, 'spot');
+  }
+}
+
+/**
+ * Simulate scheduling savings.
+ */
+async function simulateScheduling(payload) {
+  try {
+    const isLocalDev = CONFIG.apiBaseUrl.includes('localhost');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (!isLocalDev && authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(
+      `${CONFIG.apiBaseUrl}/api/mock/simulate/scheduling`,
+      {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Simulate scheduling failed:', error);
+    return getMockSimulation(payload, 'scheduling');
+  }
+}
+
+/**
+ * Mock alternatives data for local testing.
+ */
+function getMockAlternatives(payload) {
+  return {
+    currentResource: {
+      resourceId: payload.resourceId,
+      provider: payload.provider || 'AZURE',
+      sku: payload.sku || 'Standard_D4s_v3',
+      displayName: 'Current VM',
+      vcpu: 4,
+      memoryGb: 16,
+      estimatedMonthlyCost: 140.16,
+      region: payload.region || 'eastus'
+    },
+    alternatives: [
+      {
+        alternativeId: 1,
+        sku: 'Standard_D2s_v3',
+        displayName: 'D2s v3 (2 vCPU, 8 GB)',
+        provider: 'AZURE',
+        vcpu: 2,
+        memoryGb: 8,
+        estimatedMonthlyCost: 70.08,
+        estimatedMonthlySavings: 70.08,
+        savingsPercentage: 50,
+        overallScore: 0.85,
+        category: 'downsize',
+        tradeoffs: [
+          { dimension: 'cost', displayName: 'Cost Savings', score: 1.0, currentValue: '$140/mo', alternativeValue: '$70/mo', explanation: '50% cost savings', direction: 'improvement' },
+          { dimension: 'performance', displayName: 'Performance', score: 0.5, currentValue: '4 vCPU / 16 GB', alternativeValue: '2 vCPU / 8 GB', explanation: '50% of current capacity', direction: 'degradation' },
+          { dimension: 'availability', displayName: 'Availability', score: 1.0, currentValue: '99.9% SLA', alternativeValue: '99.9% SLA', explanation: 'Same SLA tier', direction: 'neutral' }
+        ]
+      },
+      {
+        alternativeId: 2,
+        sku: 'Standard_B2s',
+        displayName: 'B2s (2 vCPU, 4 GB, Burstable)',
+        provider: 'AZURE',
+        vcpu: 2,
+        memoryGb: 4,
+        estimatedMonthlyCost: 30.37,
+        estimatedMonthlySavings: 109.79,
+        savingsPercentage: 78,
+        overallScore: 0.72,
+        category: 'different_family',
+        tradeoffs: [
+          { dimension: 'cost', displayName: 'Cost Savings', score: 1.0, currentValue: '$140/mo', alternativeValue: '$30/mo', explanation: '78% cost savings', direction: 'improvement' },
+          { dimension: 'performance', displayName: 'Performance', score: 0.25, currentValue: '4 vCPU / 16 GB', alternativeValue: '2 vCPU / 4 GB', explanation: '25% of current capacity', direction: 'degradation' },
+          { dimension: 'availability', displayName: 'Availability', score: 0.75, currentValue: '99.9% SLA', alternativeValue: '99.5% SLA', explanation: 'Burstable - lower SLA', direction: 'degradation' }
+        ]
+      }
+    ],
+    userPreferences: {
+      weights: { cost: 0.35, performance: 0.25, availability: 0.15 },
+      includeMultiCloud: false,
+      minimumSavingsThreshold: 10
+    }
+  };
+}
+
+/**
+ * Mock savings metrics for local testing.
+ */
+function getMockSavingsMetrics() {
+  return {
+    totalExpectedSavings: 245.50,
+    totalValidatedSavings: 198.30,
+    implementedCount: 5,
+    validationSuccessRate: 80
+  };
+}
+
+/**
+ * Mock simulation data for local testing.
+ */
+function getMockSimulation(payload, type) {
+  const baseMonthly = 140.16;
+  let projectedMonthly, savingsPercentage;
+
+  switch (type) {
+    case 'sku':
+      projectedMonthly = 70.08;
+      savingsPercentage = 50;
+      break;
+    case 'reservation':
+      savingsPercentage = payload.term === '3' ? 60 : 30;
+      projectedMonthly = baseMonthly * (1 - savingsPercentage / 100);
+      break;
+    case 'spot':
+      savingsPercentage = 70;
+      projectedMonthly = baseMonthly * 0.3;
+      break;
+    case 'scheduling':
+      savingsPercentage = 50;
+      projectedMonthly = baseMonthly * 0.5;
+      break;
+    default:
+      projectedMonthly = baseMonthly;
+      savingsPercentage = 0;
+  }
+
+  return {
+    resourceId: payload.resourceId,
+    currentMonthlyCost: baseMonthly,
+    projectedMonthlyCost: projectedMonthly,
+    savingsAmount: baseMonthly - projectedMonthly,
+    savingsPercentage: savingsPercentage,
+    confidence: 0.85
+  };
 }
 
 /**

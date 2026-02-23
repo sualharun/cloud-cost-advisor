@@ -377,11 +377,23 @@
             `<span class="cco-status-detail">${Math.round(result.avgCpuUtilization * 100)}% CPU avg</span>` : ''}
         </div>
 
+        <div class="cco-quick-actions">
+          <button class="cco-btn cco-btn-secondary cco-btn-sm" onclick="window.ccoShowAlternatives()">
+            Compare Alternatives
+          </button>
+          <button class="cco-btn cco-btn-secondary cco-btn-sm" onclick="window.ccoShowSimulator()">
+            Cost Simulator
+          </button>
+          <button class="cco-btn cco-btn-secondary cco-btn-sm" onclick="window.ccoShowSavings()">
+            Savings Tracker
+          </button>
+        </div>
+
         ${hasRecommendations ? `
           <div class="cco-recommendations">
             <h4>Recommendations</h4>
-            ${result.recommendations.map(rec => `
-              <div class="cco-recommendation ${rec.riskLevel.toLowerCase()}">
+            ${result.recommendations.map((rec, index) => `
+              <div class="cco-recommendation ${rec.riskLevel.toLowerCase()}" data-rec-id="${index}">
                 <div class="cco-rec-header">
                   <span class="cco-rec-action">${rec.actionDisplayName}</span>
                   <span class="cco-rec-savings">Save $${rec.estimatedSavings.toFixed(2)}/mo</span>
@@ -391,10 +403,10 @@
                   <div class="cco-rec-config">Suggested: ${rec.suggestedConfig}</div>
                 ` : ''}
                 <div class="cco-rec-actions">
-                  <button class="cco-btn cco-btn-primary" onclick="window.ccoShowDetails('${rec.action}')">
-                    Details
+                  <button class="cco-btn cco-btn-primary cco-btn-sm" onclick="window.ccoMarkImplemented('${rec.action}', ${index})">
+                    Mark Implemented
                   </button>
-                  <button class="cco-btn cco-btn-secondary" onclick="window.ccoDismiss('${rec.action}')">
+                  <button class="cco-btn cco-btn-secondary cco-btn-sm" onclick="window.ccoDismiss('${rec.action}')">
                     Dismiss
                   </button>
                 </div>
@@ -538,12 +550,106 @@
     // Open details panel or modal
   };
 
-  window.ccoDismiss = function(action) {
-    chrome.runtime.sendMessage({
-      type: 'DISMISS_RECOMMENDATION',
-      payload: { action, resourceId: currentResourceId },
-    });
-    detectResource(); // Refresh
+  window.ccoDismiss = async function(action) {
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'DISMISS_RECOMMENDATION',
+        payload: { action, resourceId: currentResourceId },
+      });
+      detectResource(); // Refresh
+    } catch (error) {
+      console.error('[CloudOptimizer] Dismiss failed:', error);
+    }
+  };
+
+  window.ccoMarkImplemented = async function(action, recId) {
+    console.log('[CloudOptimizer] Mark implemented:', action, recId);
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'MARK_IMPLEMENTED',
+        payload: { action, resourceId: currentResourceId, recommendationId: recId },
+      });
+      if (response && response.success) {
+        // Show success feedback
+        const recEl = document.querySelector(`[data-rec-id="${recId}"]`);
+        if (recEl) {
+          recEl.classList.add('implemented');
+          recEl.innerHTML = `
+            <div class="cco-implemented-badge">
+              <span>✓ Marked as Implemented</span>
+              <span class="cco-implemented-note">Savings will be validated in 30 days</span>
+            </div>
+          `;
+        }
+      }
+    } catch (error) {
+      console.error('[CloudOptimizer] Mark implemented failed:', error);
+    }
+  };
+
+  window.ccoShowAlternatives = async function() {
+    console.log('[CloudOptimizer] Show alternatives for:', currentResourceId);
+    showLoadingOverlay();
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_ALTERNATIVES',
+        payload: {
+          provider: PROVIDER,
+          resourceId: currentResourceId,
+          sku: 'Standard_D4s_v3', // Would come from detected config
+          region: extractRegion() || 'eastus'
+        },
+      });
+
+      if (response && !response.error && window.TradeoffPanel) {
+        const overlay = createOverlay();
+        const content = overlay.querySelector('#cco-content');
+        window.TradeoffPanel.render(response, content);
+        overlay.classList.add('visible');
+      } else {
+        showErrorOverlay(response?.error || 'Failed to load alternatives');
+      }
+    } catch (error) {
+      console.error('[CloudOptimizer] Get alternatives failed:', error);
+      showErrorOverlay('Failed to load alternatives');
+    }
+  };
+
+  window.ccoShowSimulator = function() {
+    console.log('[CloudOptimizer] Show simulator for:', currentResourceId);
+    if (window.SimulationPanel) {
+      const overlay = createOverlay();
+      const content = overlay.querySelector('#cco-content');
+      window.SimulationPanel.render({
+        provider: PROVIDER,
+        resourceId: currentResourceId,
+        currentSku: 'Standard_D4s_v3', // Would come from detected config
+        region: extractRegion() || 'eastus'
+      }, content);
+      overlay.classList.add('visible');
+    }
+  };
+
+  window.ccoShowSavings = async function() {
+    console.log('[CloudOptimizer] Show savings dashboard');
+    showLoadingOverlay();
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_SAVINGS_METRICS'
+      });
+
+      if (response && !response.error && window.SavingsDashboard) {
+        const overlay = createOverlay();
+        const content = overlay.querySelector('#cco-content');
+        window.SavingsDashboard.render(response, content);
+        overlay.classList.add('visible');
+      } else {
+        showErrorOverlay(response?.error || 'Failed to load savings');
+      }
+    } catch (error) {
+      console.error('[CloudOptimizer] Get savings failed:', error);
+      showErrorOverlay('Failed to load savings data');
+    }
   };
 
   // Initialize when DOM is ready

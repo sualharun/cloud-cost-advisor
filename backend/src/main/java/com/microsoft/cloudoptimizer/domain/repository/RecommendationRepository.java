@@ -78,4 +78,16 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     @Query("SELECT r.status, COUNT(r) FROM Recommendation r " +
            "WHERE r.tenantId = :tenantId GROUP BY r.status")
     List<Object[]> countByStatus(@Param("tenantId") String tenantId);
+
+    /**
+     * Find recommendation by ID and tenant for security validation.
+     */
+    Optional<Recommendation> findByIdAndTenantId(Long id, String tenantId);
+
+    /**
+     * Find recommendations by tenant and status, ordered by action date.
+     * Used for listing dismissed recommendations.
+     */
+    List<Recommendation> findByTenantIdAndStatusOrderByActionedAtDesc(
+            String tenantId, RecommendationStatus status);
 }

@@ -81,6 +81,7 @@ async function init() {
     } else {
       showStatusSection();
       await loadCurrentTabStatus();
+      await loadSavingsSummary();
     }
 
   } catch (error) {
@@ -353,9 +354,46 @@ function showEmptyState(message) {
   document.getElementById('resource-info').classList.add('hidden');
   document.getElementById('stats-section').classList.add('hidden');
   document.getElementById('recommendations-section').classList.add('hidden');
+  document.getElementById('savings-summary').classList.add('hidden');
 
   if (message) {
     const p = document.querySelector('.empty-state p');
     if (p) p.textContent = message;
+  }
+}
+
+/**
+ * Load savings summary data.
+ */
+async function loadSavingsSummary() {
+  try {
+    const response = await sendMessageWithRetry({ type: 'GET_SAVINGS_METRICS' });
+
+    if (response && !response.error) {
+      showSavingsSummary(response);
+    }
+  } catch (error) {
+    console.log('Savings data not available:', error);
+  }
+}
+
+/**
+ * Show savings summary section.
+ */
+function showSavingsSummary(metrics) {
+  const summarySection = document.getElementById('savings-summary');
+  if (!summarySection) return;
+
+  if (metrics.implementedCount > 0) {
+    summarySection.classList.remove('hidden');
+
+    document.getElementById('total-savings').textContent =
+      '$' + metrics.totalExpectedSavings.toFixed(2);
+    document.getElementById('validated-savings').textContent =
+      '$' + metrics.totalValidatedSavings.toFixed(2);
+    document.getElementById('implemented-count').textContent =
+      `${metrics.implementedCount} implemented`;
+    document.getElementById('success-rate').textContent =
+      `${metrics.validationSuccessRate.toFixed(0)}% success rate`;
   }
 }
