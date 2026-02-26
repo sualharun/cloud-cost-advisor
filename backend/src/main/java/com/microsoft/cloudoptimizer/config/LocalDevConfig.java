@@ -5,10 +5,10 @@ import com.microsoft.cloudoptimizer.domain.model.CloudProvider;
 import com.microsoft.cloudoptimizer.domain.model.CostRecord;
 import com.microsoft.cloudoptimizer.domain.model.ResourceType;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,7 +24,7 @@ import java.util.*;
 /**
  * Local development configuration.
  *
- * ENABLED WHEN: spring.profiles.active=local OR APP_ENV=LOCAL
+ * ENABLED WHEN: spring.profiles.active=local (default profile)
  *
  * This configuration:
  * 1. Disables JWT authentication
@@ -35,7 +35,7 @@ import java.util.*;
  * NO CLOUD CREDENTIALS REQUIRED!
  */
 @Configuration
-@ConditionalOnProperty(name = "app.env", havingValue = "local", matchIfMissing = true)
+@Profile("local")
 @Slf4j
 public class LocalDevConfig {
 
